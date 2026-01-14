@@ -23,8 +23,8 @@ class AccountController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'access_token' => 'required|string|unique:accounts,access_token',
+            'name' => 'required|string|max:255|unique:accounts,name',
+            'access_token' => 'required|string',
         ]);
 
         if ($validator->fails()) {
@@ -35,6 +35,7 @@ class AccountController extends Controller
         }
 
         try {
+            // Token will be automatically encrypted by the model cast
             $account = Account::create([
                 'name' => $request->get('name'),
                 'access_token' => $request->get('access_token'),

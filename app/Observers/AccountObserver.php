@@ -7,6 +7,8 @@ use App\Services\ImportOrUpdateDataService;
 use App\Services\WebhookService;
 use Illuminate\Support\Facades\Log;
 
+use App\Jobs\AccountActivatedJob;
+
 class AccountObserver
 {
     public function __construct(
@@ -19,22 +21,12 @@ class AccountObserver
      */
     public function created(Account $account): void
     {
-        Log::info('Account created, starting initialization', [
-            'account_id' => $account->id,
-        ]);
+        // 
+    }
 
-        try {
-            // Start initial import in background
-            $this->importService->importAllData($account);
-
-            // Setup webhooks
-            $this->webhookService->syncWebhooks($account);
-        } catch (\Exception $e) {
-            Log::error('Account initialization failed', [
-                'account_id' => $account->id,
-                'error' => $e->getMessage(),
-            ]);
-        }
+    public function saving(Account $account): void
+    {
+        $account->is_active = !is_null($account->access_token);
     }
 
     /**
@@ -42,9 +34,14 @@ class AccountObserver
      */
     public function updated(Account $account): void
     {
-        // Check if is_active was changed
-        if ($account->wasChanged('is_active')) {
-            $this->handleActiveStatusChange($account);
+        if (! $account->wasChanged('is_active')) {
+            return;
+        }
+
+        if ($account->is_active) {
+            AccountActivatedJob::dispatch($account->id);
+        } else {
+            //AccountDeactivatedJob::dispatch($account->id);
         }
     }
 
@@ -59,39 +56,5 @@ class AccountObserver
 
         // Webhooks will be deleted via cascade
         // Additional cleanup can be added here
-    }
-
-    /**
-     * Handle account activation/deactivation
-     */
-    private function handleActiveStatusChange(Account $account): void
-    {
-        if ($account->is_active) {
-            Log::info('Account activated, enabling webhooks', [
-                'account_id' => $account->id,
-            ]);
-
-            try {
-                $this->webhookService->enableWebhooks($account);
-            } catch (\Exception $e) {
-                Log::error('Failed to enable webhooks', [
-                    'account_id' => $account->id,
-                    'error' => $e->getMessage(),
-                ]);
-            }
-        } else {
-            Log::info('Account deactivated, disabling webhooks', [
-                'account_id' => $account->id,
-            ]);
-
-            try {
-                $this->webhookService->disableWebhooks($account);
-            } catch (\Exception $e) {
-                Log::error('Failed to disable webhooks', [
-                    'account_id' => $account->id,
-                    'error' => $e->getMessage(),
-                ]);
-            }
-        }
     }
 }

@@ -54,6 +54,21 @@ class AppServiceProvider extends ServiceProvider
                 $app->make(MoySkladService::class)
             );
         });
+
+        // Register pricing services
+        $this->app->bind(PricingMatrixService::class);
+        $this->app->bind(OrderPricingService::class);
+
+        // Register file import service
+        $this->app->bind(FileImportService::class);
+
+        // Register supplier import service
+        $this->app->bind(SupplierImportService::class, function ($app) {
+            return new SupplierImportService(
+                $app->make(MoySkladService::class),
+                $app->make(EntityResolveService::class)
+            );
+        });
     }
 
     /**

@@ -14,6 +14,7 @@ class MoySkladService
 
     public function setAccessToken(string $accessToken): self
     {
+        // Token is already decrypted when passed from Account model
         $this->accessToken = $accessToken;
         return $this;
     }

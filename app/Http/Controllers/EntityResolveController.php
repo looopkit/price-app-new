@@ -19,32 +19,32 @@ class EntityResolveController extends Controller
      * Resolve entity from MoySklad extension
      * 
      * Query parameters:
-     * - token (required): access token
+     * - name (required): account name (unique identifier)
      * - id + type: single entity resolution
      * - json: multiple entities resolution
      */
     public function resolve(Request $request): JsonResponse
     {
-        // Validate token
+        // Validate name
         $validator = Validator::make($request->all(), [
-            'token' => 'required|string',
+            'name' => 'required|string',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
-                'error' => 'Token is required',
+                'error' => 'Account name is required',
                 'details' => $validator->errors(),
             ], 400);
         }
 
-        // Find account by token
-        $account = Account::where('access_token', $request->get('token'))
+        // Find account by name
+        $account = Account::byName($request->get('name'))
             ->active()
             ->first();
 
         if (!$account) {
             Log::warning('Account not found or inactive', [
-                'token' => substr($request->get('token'), 0, 10) . '...',
+                'name' => $request->get('name'),
             ]);
 
             return response()->json([

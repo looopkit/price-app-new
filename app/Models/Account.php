@@ -18,6 +18,7 @@ class Account extends Model
 
     protected $casts = [
         'is_active' => 'boolean',
+        'access_token' => 'encrypted', // Автоматическое шифрование/дешифрование
     ];
 
     public function suppliers(): HasMany
@@ -55,8 +56,21 @@ class Account extends Model
         return $query->where('is_active', true);
     }
 
+    public function scopeByName($query, string $name)
+    {
+        return $query->where('name', $name);
+    }
+
     public function isActive(): bool
     {
         return $this->is_active;
+    }
+
+    /**
+     * Get decrypted access token
+     */
+    public function getDecryptedToken(): string
+    {
+        return $this->access_token; // Automatically decrypted by cast
     }
 }
